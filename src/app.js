@@ -1,34 +1,19 @@
 import Koa from 'koa';
-import Router from 'koa-router';
 import koaBody from 'koa-bodyparser';
 import cors from '@koa/cors';
 import helmet from 'koa-helmet';
-import {makeExecutableSchema} from 'graphql-tools';
-import {graphiqlKoa,graphqlKoa} from 'apollo-server-koa';
+import { ApolloServer } from 'apollo-server-koa';
 import typeDefs from './schema.gql';
 import resolvers from './resolvers';
-import {endpointURL,isDevelopment} from "./utils/config";
-const schema = makeExecutableSchema({
-    typeDefs,resolvers
-});
+import { endpointURL} from './utils/config';
+const server = new ApolloServer({ typeDefs, resolvers });
+
 const app = new Koa();
-const router = new Router();
 
 app.use(helmet());
 app.use(koaBody());
 app.use(cors());
-router.all(
-   endpointURL,
-    //eslint-disabled-next-line
-    graphqlKoa(ctx => ({
-        schema,
-        context :{},
-        debug : isDevelopment
-    }))
-);
-if(isDevelopment) {
-    router.get('/graphiql',graphiqlKoa({endpointURL}))
-}
-app.use(router.routes()).use(router.allowedMethods());
+
+server.applyMiddleware({ app, path: endpointURL });
 
 export default app;
